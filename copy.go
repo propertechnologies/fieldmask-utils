@@ -110,6 +110,7 @@ func StructToMap(filter FieldFilter, src interface{}, dst map[string]interface{}
 		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("failed to get the field %s from %T", fieldName, src))
 		}
+		fieldName = srcType.Field(i).Tag.Get("json")
 		switch srcField.Kind() {
 		case reflect.Ptr, reflect.Interface:
 			if srcField.IsNil() {

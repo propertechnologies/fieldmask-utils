@@ -23,11 +23,9 @@ message UpdateUserRequest {
 ```
 
 ```go
-import "github.com/golang/protobuf/protoc-gen-go/generator"
-
 var request UpdateUserRequest
 userDst := &testproto.User{} // a struct to copy to
-mask, err := fieldmask_utils.MaskFromProtoFieldMask(request.FieldMask, generator.CamelCase)
+mask, err := fieldmask_utils.MaskFromProtoFieldMask(request.FieldMask)
 // handle err...
 fieldmask_utils.StructToStruct(mask, request.User, userDst)
 // Only the fields mentioned in the field mask will be copied to userDst, other fields are left intact
@@ -36,11 +34,9 @@ fieldmask_utils.StructToStruct(mask, request.User, userDst)
 Copy from a protobuf message to a `map[string]interface{}`:
 
 ```go
-import "github.com/golang/protobuf/protoc-gen-go/generator"
-
 var request UpdateUserRequest
 userDst := make(map[string]interface{}) // a map to copy to
-mask, err := fieldmask_utils.MaskFromProtoFieldMask(request.FieldMask, generator.CamelCase)
+mask, err := fieldmask_utils.MaskFromProtoFieldMask(request.FieldMask)
 // handle err...
 err := fieldmask_utils.StructToMap(mask, request.User, userDst)
 // handle err..
@@ -50,8 +46,6 @@ err := fieldmask_utils.StructToMap(mask, request.User, userDst)
 Copy with an inverse mask:
 
 ```go
-import "github.com/golang/protobuf/protoc-gen-go/generator"
-
 var request UpdateUserRequest
 userDst := &testproto.User{} // a struct to copy to
 mask := fieldmask_utils.MaskInverse{"Id": nil, "Friends": fieldmask_utils.MaskInverse{"Username": nil}}

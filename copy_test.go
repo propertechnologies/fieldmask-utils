@@ -11,6 +11,7 @@ import (
 	"github.com/propertechnologies/fieldmask-utils/testproto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/genproto/protobuf/field_mask"
 )
 
 var testUserFull *testproto.User
@@ -298,5 +299,23 @@ func TestStructToMapPartialProtoSuccess(t *testing.T) {
 		"username":    testUserPartial.Username,
 		"permissions": []interface{}(nil),
 	}
+	assert.Equal(t, expected, userDst)
+}
+
+func TestStructToMapWhitelisteProtoFields(t *testing.T) {
+	userDst := make(map[string]interface{})
+	mask, err := fieldmask_utils.MaskFromProtoFieldMask(
+		&field_mask.FieldMask{Paths: []string{"id", "username"}},
+		fieldmask_utils.Whitelist{"username"},
+	)
+	assert.NoError(t, err)
+
+	err = fieldmask_utils.StructToMap(mask, testUserPartial, userDst)
+	assert.Nil(t, err)
+
+	expected := map[string]interface{}{
+		"username": testUserPartial.Username,
+	}
+
 	assert.Equal(t, expected, userDst)
 }

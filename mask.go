@@ -2,9 +2,10 @@ package fieldmask_utils
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/pkg/errors"
 	"google.golang.org/genproto/protobuf/field_mask"
-	"strings"
 )
 
 // FieldFilter is an interface used by the copying function to filter fields that are needed to be copied.
@@ -75,15 +76,56 @@ func (m MaskInverse) String() string {
 	return mapToString(m)
 }
 
+type (
+	Naming    func(string) string
+	Whitelist []string
+)
+
 // MaskFromProtoFieldMask creates a Mask from the given FieldMask.
-func MaskFromProtoFieldMask(fm *field_mask.FieldMask, naming func(string) string) (Mask, error) {
+func MaskFromProtoFieldMask(
+	fm *field_mask.FieldMask,
+	opts ...interface{},
+) (Mask, error) {
+	var (
+		naming    = func(name string) string { return name }
+		whitelist = []string{}
+	)
+
+	for _, opt := range opts {
+		switch opt := opt.(type) {
+		case Naming:
+			naming = opt
+
+		case Whitelist:
+			whitelist = opt
+		}
+	}
+
 	root := make(Mask)
 	for _, path := range fm.GetPaths() {
-		mask := root
+		var (
+			mask = root
+			skip = false
+		)
+
+		if len(whitelist) > 0 {
+			skip = true
+			for _, allowed := range whitelist {
+				if path == allowed {
+					skip = false
+				}
+			}
+		}
+
+		if skip {
+			continue
+		}
+
 		for _, fieldName := range strings.Split(path, ".") {
 			if fieldName == "" {
 				return nil, errors.Errorf("invalid fieldName FieldFilter format: \"%s\"", path)
 			}
+
 			newFieldName := naming(fieldName)
 			subNode, ok := mask[newFieldName]
 			if !ok {

@@ -303,14 +303,13 @@ func TestStructToMapPartialProtoSuccess(t *testing.T) {
 }
 
 func TestStructToMapWhitelisteProtoFields(t *testing.T) {
-	userDst := make(map[string]interface{})
 	mask, err := fieldmask_utils.MaskFromProtoFieldMask(
 		&field_mask.FieldMask{Paths: []string{"id", "username"}},
 		fieldmask_utils.Whitelist{"username"},
 	)
 	assert.NoError(t, err)
 
-	err = fieldmask_utils.StructToMap(mask, testUserPartial, userDst)
+	userDst, err := mask.StructToMap(testUserPartial)
 	assert.Nil(t, err)
 
 	expected := map[string]interface{}{

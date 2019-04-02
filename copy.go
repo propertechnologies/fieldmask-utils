@@ -94,7 +94,11 @@ func StructToStruct(filter FieldFilter, src, dst interface{}) error {
 
 // StructToMap copies `src` struct to the `dst` map.
 // Behavior is similar to `StructToStruct`.
-func StructToMap(filter FieldFilter, src interface{}, dst map[string]interface{}) error {
+func StructToMap(
+	filter FieldFilter,
+	src interface{},
+	dst map[string]interface{},
+) error {
 	srcVal := indirect(reflect.ValueOf(src))
 	srcType := srcVal.Type()
 

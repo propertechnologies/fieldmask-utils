@@ -12,6 +12,7 @@ import (
 type FieldFilter interface {
 	// Filter should return a corresponding FieldFilter for the given fieldName and
 	Filter(fieldName string) (FieldFilter, bool)
+	StructToMap(in interface{}) (map[string]interface{}, error)
 }
 
 // Mask is a tree-based implementation of a FieldFilter.
@@ -32,6 +33,17 @@ func (m Mask) Filter(fieldName string) (FieldFilter, bool) {
 		subFilter = Mask{}
 	}
 	return subFilter, ok
+}
+
+func (m Mask) StructToMap(in interface{}) (map[string]interface{}, error) {
+	result := map[string]interface{}{}
+
+	err := StructToMap(m, in, result)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 func mapToString(m map[string]FieldFilter) string {
@@ -70,6 +82,17 @@ func (m MaskInverse) Filter(fieldName string) (FieldFilter, bool) {
 		return MaskInverse{}, !strings.HasPrefix(fieldName, "XXX_")
 	}
 	return subFilter, subFilter != nil
+}
+
+func (m MaskInverse) StructToMap(in interface{}) (map[string]interface{}, error) {
+	result := map[string]interface{}{}
+
+	err := StructToMap(m, in, result)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 func (m MaskInverse) String() string {

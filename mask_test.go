@@ -2,7 +2,7 @@ package fieldmask_utils_test
 
 import (
 	"github.com/golang/protobuf/protoc-gen-go/generator"
-	"github.com/mennanov/fieldmask-utils"
+	"github.com/propertechnologies/fieldmask-utils"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/genproto/protobuf/field_mask"
 	"testing"

@@ -2,6 +2,8 @@ package fieldmask_utils_test
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/timestamp"
@@ -9,7 +11,6 @@ import (
 	"github.com/propertechnologies/fieldmask-utils/testproto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 var testUserFull *testproto.User
@@ -258,25 +259,25 @@ func TestStructToStructNonProtoFail(t *testing.T) {
 func TestStructToMapSuccess(t *testing.T) {
 	userDst := make(map[string]interface{})
 	mask := fieldmask_utils.MaskFromString(
-		"Id,Avatar{OriginalUrl},Tags,Images,Permissions,Friends{Images{ResizedUrl}}")
+		"id,avatar{original_url},tags,images,permissions,friends{images{resized_url}}")
 	err := fieldmask_utils.StructToMap(mask, testUserFull, userDst)
 	assert.Nil(t, err)
 	expected := map[string]interface{}{
-		"Id": testUserFull.Id,
-		"Avatar": map[string]interface{}{
-			"OriginalUrl": testUserFull.Avatar.OriginalUrl,
+		"id": testUserFull.Id,
+		"avatar": map[string]interface{}{
+			"original_url": testUserFull.Avatar.OriginalUrl,
 		},
-		"Tags": testUserFull.Tags,
-		"Images": []map[string]interface{}{
-			{"OriginalUrl": testUserFull.Images[0].OriginalUrl, "ResizedUrl": testUserFull.Images[0].ResizedUrl},
-			{"OriginalUrl": testUserFull.Images[1].OriginalUrl, "ResizedUrl": testUserFull.Images[1].ResizedUrl},
+		"tags": testUserFull.Tags,
+		"images": []map[string]interface{}{
+			{"original_url": testUserFull.Images[0].OriginalUrl, "resized_url": testUserFull.Images[0].ResizedUrl},
+			{"original_url": testUserFull.Images[1].OriginalUrl, "resized_url": testUserFull.Images[1].ResizedUrl},
 		},
-		"Permissions": testUserFull.Permissions,
-		"Friends": []map[string]interface{}{
+		"permissions": testUserFull.Permissions,
+		"friends": []map[string]interface{}{
 			{
-				"Images": []map[string]interface{}{
-					{"ResizedUrl": testUserFull.Friends[0].Images[0].ResizedUrl},
-					{"ResizedUrl": testUserFull.Friends[0].Images[1].ResizedUrl},
+				"images": []map[string]interface{}{
+					{"resized_url": testUserFull.Friends[0].Images[0].ResizedUrl},
+					{"resized_url": testUserFull.Friends[0].Images[1].ResizedUrl},
 				},
 			},
 		},
@@ -287,16 +288,15 @@ func TestStructToMapSuccess(t *testing.T) {
 func TestStructToMapPartialProtoSuccess(t *testing.T) {
 	userDst := make(map[string]interface{})
 	mask := fieldmask_utils.MaskFromString(
-		"Id,Avatar{OriginalUrl},Images,Username,Permissions,Name{MaleName}")
+		"id,avatar{original_url},images,username,permissions,name{male_name}")
 	err := fieldmask_utils.StructToMap(mask, testUserPartial, userDst)
 	assert.Nil(t, err)
 	expected := map[string]interface{}{
-		"Id":          testUserPartial.Id,
-		"Avatar":      nil,
-		"Images":      []map[string]interface{}{},
-		"Username":    testUserPartial.Username,
-		"Permissions": []interface{}(nil),
-		"Name":        nil,
+		"id":          testUserPartial.Id,
+		"avatar":      nil,
+		"images":      []map[string]interface{}{},
+		"username":    testUserPartial.Username,
+		"permissions": []interface{}(nil),
 	}
 	assert.Equal(t, expected, userDst)
 }

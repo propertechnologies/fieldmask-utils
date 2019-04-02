@@ -2,8 +2,10 @@ package fieldmask_utils
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
 	"reflect"
+	"strings"
+
+	"github.com/pkg/errors"
 )
 
 // StructToStruct copies `src` struct to `dst` struct using the given FieldFilter.
@@ -95,10 +97,27 @@ func StructToStruct(filter FieldFilter, src, dst interface{}) error {
 func StructToMap(filter FieldFilter, src interface{}, dst map[string]interface{}) error {
 	srcVal := indirect(reflect.ValueOf(src))
 	srcType := srcVal.Type()
+
+	fields := map[string]string{}
+
+	// Take field names in mask and in map from JSON tags for given src
+	// struct.
+	for i := 0; i < srcVal.NumField(); i++ {
+		json := strings.Split(srcType.Field(i).Tag.Get("json"), ",")
+		if len(json) > 0 && json[0] != "" && json[0] != "-" {
+			fields[srcType.Field(i).Name] = json[0]
+		}
+	}
+
 	for i := 0; i < srcVal.NumField(); i++ {
 		f := srcVal.Field(i)
 		fieldName := srcType.Field(i).Name
-		subFilter, ok := filter.Filter(fieldName)
+
+		if _, ok := fields[fieldName]; !ok {
+			continue
+		}
+
+		subFilter, ok := filter.Filter(fields[fieldName])
 		if !ok {
 			// Skip this field.
 			continue
@@ -110,7 +129,9 @@ func StructToMap(filter FieldFilter, src interface{}, dst map[string]interface{}
 		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("failed to get the field %s from %T", fieldName, src))
 		}
-		fieldName = srcType.Field(i).Tag.Get("json")
+
+		fieldName = fields[fieldName]
+
 		switch srcField.Kind() {
 		case reflect.Ptr, reflect.Interface:
 			if srcField.IsNil() {

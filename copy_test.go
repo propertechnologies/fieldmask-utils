@@ -302,19 +302,10 @@ func TestStructToMapPartialProtoSuccess(t *testing.T) {
 	assert.Equal(t, expected, userDst)
 }
 
-func TestStructToMapWhitelisteProtoFields(t *testing.T) {
-	mask, err := fieldmask_utils.MaskFromProtoFieldMask(
-		&field_mask.FieldMask{Paths: []string{"id", "username"}},
+func TestStructToMapEnforceWhitelist(t *testing.T) {
+	_, err := fieldmask_utils.MaskFromProtoFieldMask(
+		&field_mask.FieldMask{Paths: []string{"id"}},
 		fieldmask_utils.Whitelist{"username"},
 	)
-	assert.NoError(t, err)
-
-	userDst, err := mask.StructToMap(testUserPartial)
-	assert.Nil(t, err)
-
-	expected := map[string]interface{}{
-		"username": testUserPartial.Username,
-	}
-
-	assert.Equal(t, expected, userDst)
+	assert.Error(t, err)
 }

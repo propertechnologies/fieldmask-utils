@@ -141,7 +141,7 @@ func MaskFromProtoFieldMask(
 		}
 
 		if skip {
-			continue
+			return nil, errors.Errorf("field %s is not allowed in mask", path)
 		}
 
 		for _, fieldName := range strings.Split(path, ".") {
@@ -158,6 +158,15 @@ func MaskFromProtoFieldMask(
 			mask = subNode.(Mask)
 		}
 	}
+
+	if len(whitelist) > 0 && len(root) == 0 {
+		return MaskFromProtoFieldMask(
+			&field_mask.FieldMask{
+				Paths: whitelist,
+			},
+		)
+	}
+
 	return root, nil
 }
 

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/gogo/protobuf/types"
 	"github.com/pkg/errors"
-	"google.golang.org/genproto/protobuf/field_mask"
 )
 
 // FieldFilter is an interface used by the copying function to filter fields that are needed to be copied.
@@ -106,7 +106,7 @@ type (
 
 // MaskFromProtoFieldMask creates a Mask from the given FieldMask.
 func MaskFromProtoFieldMask(
-	fm *field_mask.FieldMask,
+	fm *types.FieldMask,
 	opts ...interface{},
 ) (Mask, error) {
 	var (
@@ -161,7 +161,7 @@ func MaskFromProtoFieldMask(
 
 	if len(whitelist) > 0 && len(root) == 0 {
 		return MaskFromProtoFieldMask(
-			&field_mask.FieldMask{
+			&types.FieldMask{
 				Paths: whitelist,
 			},
 		)

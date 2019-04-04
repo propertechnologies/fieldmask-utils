@@ -1,11 +1,12 @@
 package fieldmask_utils_test
 
 import (
+	"testing"
+
+	"github.com/gogo/protobuf/types"
 	"github.com/golang/protobuf/protoc-gen-go/generator"
 	"github.com/propertechnologies/fieldmask-utils"
 	"github.com/stretchr/testify/assert"
-	"google.golang.org/genproto/protobuf/field_mask"
-	"testing"
 )
 
 func TestMask_String(t *testing.T) {
@@ -15,11 +16,11 @@ func TestMask_String(t *testing.T) {
 
 func TestMaskFromProtoFieldMaskSuccess(t *testing.T) {
 	testCases := []struct {
-		mask         *field_mask.FieldMask
+		mask         *types.FieldMask
 		expectedTree string
 	}{
 		{
-			&field_mask.FieldMask{Paths: []string{
+			&types.FieldMask{Paths: []string{
 				"a", // overwritten by the paths below (a.*)
 				"a.b.c",
 				"a.b.d",
@@ -31,11 +32,11 @@ func TestMaskFromProtoFieldMaskSuccess(t *testing.T) {
 			"a{b{c,d},c{d}},b{c{d}},c",
 		},
 		{
-			&field_mask.FieldMask{Paths: []string{"a", "b", "b", "a"}},
+			&types.FieldMask{Paths: []string{"a", "b", "b", "a"}},
 			"a,b",
 		},
 		{
-			&field_mask.FieldMask{Paths: []string{}},
+			&types.FieldMask{Paths: []string{}},
 			"",
 		},
 	}
@@ -47,7 +48,7 @@ func TestMaskFromProtoFieldMaskSuccess(t *testing.T) {
 }
 
 func TestMaskFromProtoFieldMask_Failure(t *testing.T) {
-	testCases := []*field_mask.FieldMask{
+	testCases := []*types.FieldMask{
 		{Paths: []string{"a", ".a"}},
 		{Paths: []string{"."}},
 		{Paths: []string{"a.b.c.d.e", "a.b."}},

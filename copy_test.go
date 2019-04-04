@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/gogo/protobuf/types"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/timestamp"
@@ -11,7 +12,6 @@ import (
 	"github.com/propertechnologies/fieldmask-utils/testproto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/genproto/protobuf/field_mask"
 )
 
 var testUserFull *testproto.User
@@ -304,7 +304,7 @@ func TestStructToMapPartialProtoSuccess(t *testing.T) {
 
 func TestStructToMapEnforceWhitelist(t *testing.T) {
 	_, err := fieldmask_utils.MaskFromProtoFieldMask(
-		&field_mask.FieldMask{Paths: []string{"id"}},
+		&types.FieldMask{Paths: []string{"id"}},
 		fieldmask_utils.Whitelist{"username"},
 	)
 	assert.Error(t, err)

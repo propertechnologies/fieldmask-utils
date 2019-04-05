@@ -114,7 +114,6 @@ func StructToMap(
 	}
 
 	for i := 0; i < srcVal.NumField(); i++ {
-		f := srcVal.Field(i)
 		fieldName := srcType.Field(i).Name
 
 		if _, ok := fields[fieldName]; !ok {
@@ -125,9 +124,6 @@ func StructToMap(
 		if !ok {
 			// Skip this field.
 			continue
-		}
-		if !f.CanSet() {
-			return errors.Errorf("Can't set a value on a field %s", fieldName)
 		}
 		srcField, err := getField(src, fieldName)
 		if err != nil {

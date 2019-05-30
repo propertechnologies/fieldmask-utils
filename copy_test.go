@@ -8,7 +8,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/timestamp"
-	"github.com/propertechnologies/fieldmask-utils"
+	fieldmask_utils "github.com/propertechnologies/fieldmask-utils"
 	"github.com/propertechnologies/fieldmask-utils/testproto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -88,7 +88,7 @@ func init() {
 func TestStructToStructProtoSuccess(t *testing.T) {
 	userDst := &testproto.User{}
 	mask := fieldmask_utils.MaskFromString(
-		"Id,Avatar{OriginalUrl},Tags,Images,Permissions,Friends{Images{ResizedUrl}},Name{MaleName}")
+		"id,avatar{original_url},tags,images,permissions,friends{images{resized_url}},name{male_name}")
 	err := fieldmask_utils.StructToStruct(mask, testUserFull, userDst)
 	require.NoError(t, err)
 	assert.Equal(t, testUserFull.Id, userDst.Id)
@@ -119,7 +119,7 @@ func TestStructToStructEmptyMaskSuccess(t *testing.T) {
 func TestStructToStructPartialProtoSuccess(t *testing.T) {
 	userDst := &testproto.User{}
 	mask := fieldmask_utils.MaskFromString(
-		"Id,Avatar{OriginalUrl},Images,Username,Permissions,Name{MaleName}")
+		"id,avatar{original_url},images,username,permissions,name{male_name}")
 	err := fieldmask_utils.StructToStruct(mask, testUserPartial, userDst)
 	assert.Nil(t, err)
 	assert.Equal(t, testUserPartial.Id, userDst.Id)
@@ -142,7 +142,7 @@ func TestStructToStructMaskInverse(t *testing.T) {
 		},
 	}
 	userDst := &testproto.User{}
-	mask := fieldmask_utils.MaskInverse{"Id": nil, "Friends": fieldmask_utils.MaskInverse{"Username": nil}}
+	mask := fieldmask_utils.MaskInverse{"id": nil, "friends": fieldmask_utils.MaskInverse{"username": nil}}
 	err := fieldmask_utils.StructToStruct(mask, userSrc, userDst)
 	require.NoError(t, err)
 	// Verify that Id is not copied.
@@ -162,7 +162,7 @@ type Name interface {
 }
 
 type FemaleName struct {
-	FemaleName string
+	FemaleName string `json:"female_name"`
 }
 
 func (*FemaleName) someMethod() {}
@@ -171,14 +171,14 @@ func (f *FemaleName) String() string {
 }
 
 type CustomUser struct {
-	Name Name
+	Name Name `json:"name"`
 }
 
 func TestStructToStructProtoDifferentInterfacesFail(t *testing.T) {
 	userDst := &testproto.User{}
 	userSrc := &CustomUser{Name: &FemaleName{FemaleName: "Dana"}}
 
-	mask := fieldmask_utils.MaskFromString("Name")
+	mask := fieldmask_utils.MaskFromString("name{female_name}")
 	err := fieldmask_utils.StructToStruct(mask, userSrc, userDst)
 	assert.NotNil(t, err)
 }
@@ -206,14 +206,14 @@ func TestStructToStructProtoSameInterfacesSuccess(t *testing.T) {
 
 func TestStructToStructNonProtoSuccess(t *testing.T) {
 	type Image struct {
-		OriginalUrl string
-		ResizedUrl  string
+		OriginalUrl string `json:"original_url"`
+		ResizedUrl  string `json:"resized_url"`
 	}
 	type User struct {
-		Id          uint32
-		Username    string
-		Deactivated bool
-		Images      []*Image
+		Id          uint32   `json:"id"`
+		Username    string   `json:"username"`
+		Deactivated bool     `json:"deactivated"`
+		Images      []*Image `json:"images"`
 	}
 
 	userSrc := &User{
@@ -237,6 +237,27 @@ func TestStructToStructNonProtoSuccess(t *testing.T) {
 	assert.Equal(t, userSrc.Images[1].OriginalUrl, userDst.Images[1].OriginalUrl)
 	assert.Equal(t, userSrc.Images[1].ResizedUrl, userDst.Images[1].ResizedUrl)
 	assert.Equal(t, userSrc.Deactivated, userDst.Deactivated)
+}
+
+func TestStructToStructPointerFields(t *testing.T) {
+	userSrc := &testproto.User{
+		Id:       200,
+		Username: "friend",
+	}
+
+	type User struct {
+		Id       *uint32 `json:"id"`
+		Username *string `json:"username"`
+	}
+
+	userDst := &User{}
+
+	mask := fieldmask_utils.MaskFromString("username")
+	err := fieldmask_utils.StructToStruct(mask, userSrc, userDst)
+	assert.Nil(t, err)
+	assert.Nil(t, userDst.Id)
+	assert.NotNil(t, userDst.Username)
+	assert.Equal(t, userSrc.Username, *userDst.Username)
 }
 
 func TestStructToStructNonProtoFail(t *testing.T) {
@@ -295,6 +316,7 @@ func TestStructToMapPartialProtoSuccess(t *testing.T) {
 	expected := map[string]interface{}{
 		"id":          testUserPartial.Id,
 		"avatar":      nil,
+		"name":        nil,
 		"images":      []map[string]interface{}{},
 		"username":    testUserPartial.Username,
 		"permissions": []interface{}(nil),

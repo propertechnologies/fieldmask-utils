@@ -13,24 +13,37 @@ import (
 // `src` and `dst` must be coherent in terms of the field names, but it is not required for them to be of the same type.
 func StructToStruct(filter FieldFilter, src, dst interface{}) error {
 	srcVal := indirect(reflect.ValueOf(src))
-	srcType := srcVal.Type()
+	dstVal := indirect(reflect.ValueOf(dst))
+	srcFields := getFieldMappingFromTags(srcVal, false)
+	dstFields := getFieldMappingFromTags(dstVal, true)
+
 	for i := 0; i < srcVal.NumField(); i++ {
 		f := srcVal.Field(i)
-		fieldName := srcType.Field(i).Name
-		subFilter, ok := filter.Filter(fieldName)
+		fieldName := srcVal.Type().Field(i).Name
+		if _, ok := srcFields[fieldName]; !ok {
+			continue
+		}
+
+		srcFieldName := srcFields[fieldName]
+
+		subFilter, ok := filter.Filter(srcFieldName)
 		if !ok {
 			// Skip this field.
 			continue
 		}
 		if !f.CanSet() {
-			return errors.Errorf("Can't set a value on a field %s", fieldName)
+			return errors.Errorf("can't set a value on a field %s", fieldName)
+		}
+
+		if _, ok := dstFields[srcFieldName]; !ok {
+			return errors.Errorf("target field %s is not present in dst struct", srcFieldName)
 		}
 
 		srcField, err := getField(src, fieldName)
 		if err != nil {
 			return errors.Wrapf(err, "failed to get the field %s from %T", fieldName, src)
 		}
-		dstField, err := getField(dst, fieldName)
+		dstField, err := getField(dst, dstFields[srcFieldName])
 		if err != nil {
 			return errors.Wrapf(err, "failed to get the field %s from %T", fieldName, dst)
 		}
@@ -55,15 +68,24 @@ func StructToStruct(filter FieldFilter, src, dst interface{}) error {
 			dstField.Set(v)
 
 		case reflect.Ptr:
-			if srcField.IsNil() {
-				dstField.Set(reflect.Zero(dstFieldType))
-				continue
+			switch srcField.Type().Kind() {
+			case reflect.Ptr, reflect.Interface:
+				if srcField.IsNil() {
+					dstField.Set(reflect.Zero(dstFieldType))
+					continue
+				}
+
+				v := reflect.New(dstFieldType.Elem())
+				if err := StructToStruct(subFilter, srcField.Interface(), v.Interface()); err != nil {
+					return err
+				}
+				dstField.Set(v)
+
+			default:
+				v := reflect.New(dstFieldType.Elem())
+				v.Elem().Set(srcField)
+				dstField.Set(v)
 			}
-			v := reflect.New(dstFieldType.Elem())
-			if err := StructToStruct(subFilter, srcField.Interface(), v.Interface()); err != nil {
-				return err
-			}
-			dstField.Set(v)
 
 		case reflect.Array, reflect.Slice:
 			// Check if it is an array of values (non-pointers).
@@ -92,6 +114,53 @@ func StructToStruct(filter FieldFilter, src, dst interface{}) error {
 	return nil
 }
 
+func getFieldMappingFromTags(val reflect.Value, reverse bool) map[string]string {
+	fields := map[string]string{}
+
+	for i := 0; i < val.NumField(); i++ {
+		field := val.Type().Field(i)
+		tag := field.Tag
+
+		var spec string
+
+		switch {
+		case tag.Get("protobuf") != "":
+			spec = tag.Get("protobuf")
+
+		case tag.Get("protobuf_oneof") != "":
+			spec = "name=" + tag.Get("protobuf_oneof")
+
+		case tag.Get("json") != "":
+			spec = "name=" + tag.Get("json")
+
+		default:
+			spec = "name=" + field.Name
+		}
+
+		opts := strings.Split(spec, ",")
+		for _, opt := range opts {
+			kv := strings.SplitN(opt, "=", 2)
+			switch {
+			case len(kv) != 2:
+				continue
+			case kv[0] != "name":
+				continue
+			case kv[1] == "-", kv[1] == "":
+				continue
+			}
+
+			from, to := val.Type().Field(i).Name, kv[1]
+			if reverse {
+				from, to = to, from
+			}
+
+			fields[from] = to
+		}
+	}
+
+	return fields
+}
+
 // StructToMap copies `src` struct to the `dst` map.
 // Behavior is similar to `StructToStruct`.
 func StructToMap(
@@ -100,21 +169,11 @@ func StructToMap(
 	dst map[string]interface{},
 ) error {
 	srcVal := indirect(reflect.ValueOf(src))
-	srcType := srcVal.Type()
 
-	fields := map[string]string{}
-
-	// Take field names in mask and in map from JSON tags for given src
-	// struct.
-	for i := 0; i < srcVal.NumField(); i++ {
-		json := strings.Split(srcType.Field(i).Tag.Get("json"), ",")
-		if len(json) > 0 && json[0] != "" && json[0] != "-" {
-			fields[srcType.Field(i).Name] = json[0]
-		}
-	}
+	fields := getFieldMappingFromTags(srcVal, false)
 
 	for i := 0; i < srcVal.NumField(); i++ {
-		fieldName := srcType.Field(i).Name
+		fieldName := srcVal.Type().Field(i).Name
 
 		if _, ok := fields[fieldName]; !ok {
 			continue

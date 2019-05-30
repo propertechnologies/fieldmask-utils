@@ -5,8 +5,22 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/gogo/protobuf/types"
 	"github.com/pkg/errors"
 )
+
+func ProtoToStruct(
+	fm *types.FieldMask,
+	src, dst interface{},
+	opts ...interface{},
+) error {
+	filter, err := MaskFromProtoFieldMask(fm, opts...)
+	if err != nil {
+		return err
+	}
+
+	return StructToStruct(filter, src, dst)
+}
 
 // StructToStruct copies `src` struct to `dst` struct using the given FieldFilter.
 // Only the fields where FieldFilter returns true will be copied to `dst`.

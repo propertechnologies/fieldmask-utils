@@ -32,7 +32,6 @@ func StructToStruct(filter FieldFilter, src, dst interface{}) error {
 	dstFields := getFieldMappingFromTags(dstVal, true)
 
 	for i := 0; i < srcVal.NumField(); i++ {
-		f := srcVal.Field(i)
 		fieldName := srcVal.Type().Field(i).Name
 		if _, ok := srcFields[fieldName]; !ok {
 			continue
@@ -44,9 +43,6 @@ func StructToStruct(filter FieldFilter, src, dst interface{}) error {
 		if !ok {
 			// Skip this field.
 			continue
-		}
-		if !f.CanSet() {
-			return errors.Errorf("can't set a value on a field %s", fieldName)
 		}
 
 		if _, ok := dstFields[srcFieldName]; !ok {
@@ -60,6 +56,9 @@ func StructToStruct(filter FieldFilter, src, dst interface{}) error {
 		dstField, err := getField(dst, dstFields[srcFieldName])
 		if err != nil {
 			return errors.Wrapf(err, "failed to get the field %s from %T", fieldName, dst)
+		}
+		if !dstField.CanSet() {
+			return errors.Errorf("can't set a value on a field %s", fieldName)
 		}
 
 		dstFieldType := dstField.Type()
